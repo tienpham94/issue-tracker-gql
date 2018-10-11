@@ -87,6 +87,39 @@ const resolveIssuesQuery = (queryResult, cursor) => state => {
   };
 };
 
+const ADD_STAR = `
+  mutation ($repositoryId: ID!) {
+    addStar(input:{starrableId:$repositoryId}) {
+      starrable {
+        viewerHasStarred
+      }
+    }
+  }
+`;
+
+const resolveAddStarMutation = mutationResult => state => {
+  const {
+    viewerHasStarred,
+  } = mutationResult.data.data.addStar.starrable;
+
+  return {
+    ...state,
+    organization: {
+      ...state.organization,
+      repository: {
+        ...state.organization.repository,
+        viewerHasStarred,
+      },
+    },
+  };
+};
+const addStarToRepository = repositoryId => {
+  return axiosGitHubGraphQL.post('', {
+    query: ADD_STAR,
+    variables: { repositoryId },
+  });
+};
+
 class App extends Component {
   state = {
     path: "the-road-to-learn-react/the-road-to-learn-react",
@@ -120,6 +153,11 @@ class App extends Component {
     );
   };
 
+  onStarRepository = (repositoryId, viewerHasStarred) => {
+    addStarToRepository(repositoryId).then(mutationResult =>
+      this.setState(resolveAddStarMutation(mutationResult)),
+    );
+  };
   render() {
     const { path, organization, errors } = this.state;
     return (
@@ -145,6 +183,7 @@ class App extends Component {
             onFetchMoreIssues={this.onFetchMoreIssues}
             organization={organization}
             errors={errors}
+            onStarRepository={this.onStarRepository}
           />
         ) : (
           <p>No information yet ...</p>
