@@ -21,6 +21,9 @@ const GET_ISSUES_OF_REPOSITORY = `
         id
         name
         url
+        stargazers {
+          totalCount
+        }
         viewerHasStarred
         issues(first: 5, after: $cursor, states: [OPEN]) {
           edges {
@@ -102,6 +105,8 @@ const resolveAddStarMutation = mutationResult => state => {
     viewerHasStarred,
   } = mutationResult.data.data.addStar.starrable;
 
+  const { totalCount } = state.organization.repository.stargazers;
+
   return {
     ...state,
     organization: {
@@ -109,14 +114,18 @@ const resolveAddStarMutation = mutationResult => state => {
       repository: {
         ...state.organization.repository,
         viewerHasStarred,
+        stargazers: {
+          totalCount: totalCount + 1,
+        },
       },
     },
   };
 };
+
 const addStarToRepository = repositoryId => {
-  return axiosGitHubGraphQL.post('', {
+  return axiosGitHubGraphQL.post("", {
     query: ADD_STAR,
-    variables: { repositoryId },
+    variables: { repositoryId }
   });
 };
 
@@ -155,7 +164,7 @@ class App extends Component {
 
   onStarRepository = (repositoryId, viewerHasStarred) => {
     addStarToRepository(repositoryId).then(mutationResult =>
-      this.setState(resolveAddStarMutation(mutationResult)),
+      this.setState(resolveAddStarMutation(mutationResult))
     );
   };
   render() {
@@ -236,7 +245,8 @@ const Repository = ({ repository, onFetchMoreIssues, onStarRepository }) => (
         onStarRepository(repository.id, repository.viewerHasStarred)
       }
     >
-      {repository.viewerHasStarred ? "Unstar" : "Star"}
+      {repository.stargazers.totalCount}
+      {repository.viewerHasStarred ? " Unstar" : " Star"}
     </button>
 
     <ul>
