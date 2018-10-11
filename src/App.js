@@ -12,24 +12,45 @@ const axiosGitHubGraphQL = axios.create({
 
 const TITLE = "React GraphQL GitHub Client";
 
-const GET_ORGANIZATION = `
+const getIssuesOfRepositoryQuery = (organization, repository) => `
   {
-    organization(login: "the-road-to-learn-react") {
+    organization(login: "${organization}") {
       name
       url
+      repository(name: "${repository}") {
+        name
+        url
+        issues(last: 5) {
+          edges {
+            node {
+              id
+              title
+              url
+            }
+          }
+        }
+      }
     }
   }
 `;
+
+const getIssuesOfRepository = path => {
+  const [organization, repository] = path.split("/");
+
+  return axiosGitHubGraphQL.post("", {
+    query: getIssuesOfRepositoryQuery(organization, repository)
+  });
+};
 
 class App extends Component {
   state = {
     path: "the-road-to-learn-react/the-road-to-learn-react",
     organization: null,
-    errors: null,
+    errors: null
   };
 
   componentDidMount() {
-    this.onFetchFromGitHub();
+    this.onFetchFromGitHub(this.state.path);
   }
 
   onChange = event => {
@@ -37,20 +58,18 @@ class App extends Component {
   };
 
   onSubmit = event => {
-    // fetch data
+    this.onFetchFromGitHub(this.state.path);
 
     event.preventDefault();
   };
 
-  onFetchFromGitHub = () => {
-    axiosGitHubGraphQL
-      .post("", { query: GET_ORGANIZATION })
-      .then(result =>
-        this.setState(() => ({
-          organization: result.data.data.organization,
-          errors: result.data.errors,
-        })),
-      );
+  onFetchFromGitHub = path => {
+    getIssuesOfRepository(path).then(result =>
+      this.setState(() => ({
+        organization: result.data.data.organization,
+        errors: result.data.errors
+      }))
+    );
   };
 
   render() {
@@ -88,7 +107,7 @@ const Organization = ({ organization, errors }) => {
     return (
       <p>
         <strong>Something went wrong:</strong>
-        {errors.map(error => error.message).join(' ')}
+        {errors.map(error => error.message).join(" ")}
       </p>
     );
   }
@@ -99,8 +118,26 @@ const Organization = ({ organization, errors }) => {
         <strong>Issues from Organization:</strong>
         <a href={organization.url}>{organization.name}</a>
       </p>
+      <Repository repository={organization.repository} />
     </div>
   );
 };
+
+const Repository = ({ repository }) => (
+  <div>
+    <p>
+      <strong>In Repository:</strong>
+      <a href={repository.url}>{repository.name}</a>
+    </p>
+
+    <ul>
+      {repository.issues.edges.map(issue => (
+        <li key={issue.node.id}>
+          <a href={issue.node.url}>{issue.node.title}</a>
+        </li>
+      ))}
+    </ul>
+  </div>
+);
 
 export default App;
