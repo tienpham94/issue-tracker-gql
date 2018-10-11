@@ -267,8 +267,6 @@ const Repository = ({ repository, onFetchMoreIssues, onStarRepository }) => (
     {repository.issues.pageInfo.hasNextPage && (
       <button onClick={onFetchMoreIssues}>More</button>
     )}
-
-    <button onClick={onFetchMoreIssues}>More</button>
   </div>
 );
 
