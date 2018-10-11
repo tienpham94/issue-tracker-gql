@@ -18,8 +18,10 @@ const GET_ISSUES_OF_REPOSITORY = `
       name
       url
       repository(name: $repository) {
+        id
         name
         url
+        viewerHasStarred
         issues(first: 5, after: $cursor, states: [OPEN]) {
           edges {
             node {
@@ -152,7 +154,12 @@ class App extends Component {
   }
 }
 
-const Organization = ({ organization, errors, onFetchMoreIssues }) => {
+const Organization = ({
+  organization,
+  errors,
+  onFetchMoreIssues,
+  onStarRepository
+}) => {
   if (errors) {
     return (
       <p>
@@ -170,18 +177,28 @@ const Organization = ({ organization, errors, onFetchMoreIssues }) => {
       </p>
       <Repository
         repository={organization.repository}
+        onStarRepository={onStarRepository}
         onFetchMoreIssues={onFetchMoreIssues}
       />
     </div>
   );
 };
 
-const Repository = ({ repository, onFetchMoreIssues }) => (
+const Repository = ({ repository, onFetchMoreIssues, onStarRepository }) => (
   <div>
     <p>
       <strong>In Repository:</strong>
       <a href={repository.url}>{repository.name}</a>
     </p>
+
+    <button
+      type="button"
+      onClick={() =>
+        onStarRepository(repository.id, repository.viewerHasStarred)
+      }
+    >
+      {repository.viewerHasStarred ? "Unstar" : "Star"}
+    </button>
 
     <ul>
       {repository.issues.edges.map(issue => (
