@@ -20,13 +20,26 @@ const GET_ISSUES_OF_REPOSITORY = `
       repository(name: $repository) {
         name
         url
-        issues(last: 5) {
+        issues(last: 5, states: [OPEN]) {
           edges {
             node {
               id
               title
               url
+              reactions(last: 3) {
+                edges {
+                  node {
+                    id
+                    content
+                  }
+                }
+              }
             }
+          }
+          totalCount
+          pageInfo {
+            endCursor
+            hasNextPage
           }
         }
       }
@@ -63,6 +76,12 @@ class App extends Component {
     this.setState({ path: event.target.value });
   };
 
+  onFetchMoreIssues = () => {
+    const { endCursor } = this.state.organization.repository.issues.pageInfo;
+
+    this.onFetchFromGitHub(this.state.path, endCursor);
+  };
+
   onSubmit = event => {
     this.onFetchFromGitHub(this.state.path);
 
@@ -96,7 +115,11 @@ class App extends Component {
         <hr />
 
         {organization ? (
-          <Organization organization={organization} errors={errors} />
+          <Organization
+            onFetchMoreIssues={this.onFetchMoreIssues}
+            organization={organization}
+            errors={errors}
+          />
         ) : (
           <p>No information yet ...</p>
         )}
@@ -105,7 +128,7 @@ class App extends Component {
   }
 }
 
-const Organization = ({ organization, errors }) => {
+const Organization = ({ organization, errors, onFetchMoreIssues }) => {
   if (errors) {
     return (
       <p>
@@ -121,12 +144,15 @@ const Organization = ({ organization, errors }) => {
         <strong>Issues from Organization:</strong>
         <a href={organization.url}>{organization.name}</a>
       </p>
-      <Repository repository={organization.repository} />
+      <Repository
+        repository={organization.repository}
+        onFetchMoreIssues={onFetchMoreIssues}
+      />
     </div>
   );
 };
 
-const Repository = ({ repository }) => (
+const Repository = ({ repository, onFetchMoreIssues }) => (
   <div>
     <p>
       <strong>In Repository:</strong>
@@ -137,9 +163,18 @@ const Repository = ({ repository }) => (
       {repository.issues.edges.map(issue => (
         <li key={issue.node.id}>
           <a href={issue.node.url}>{issue.node.title}</a>
+
+          <ul>
+            {issue.node.reactions.edges.map(reaction => (
+              <li key={reaction.node.id}>{reaction.node.content}</li>
+            ))}
+          </ul>
         </li>
       ))}
     </ul>
+    <hr />
+
+    <button onClick={onFetchMoreIssues}>More</button>
   </div>
 );
 
